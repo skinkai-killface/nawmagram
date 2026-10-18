@@ -19,7 +19,8 @@ jobs:
 
       - name: 📦 Clone Telegram Android source
         run: |
-          git clone --depth=1 https://github.com/DrKLO/Telegram.git telegram
+          git clone --depth=1 --recurse-submodules --shallow-submodules \
+            https://github.com/DrKLO/Telegram.git telegram
           echo "✅ Telegram cloned: $(git -C telegram log --oneline -1)"
 
       - name: 🎨 Apply Nawmagram patches
