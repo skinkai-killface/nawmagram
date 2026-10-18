@@ -42,8 +42,44 @@ jobs:
           sed -i 's|<string name="AppNameBeta">Telegram Beta</string>|<string name="AppNameBeta">Nawmagram Beta</string>|' \
             telegram/TMessagesProj/src/main/res/values/strings.xml
 
-          # gradle.properties
+          # gradle.properties — keep original package to match google-services.json
+          # (google-services.json is tied to org.telegram.messenger, changing package breaks it)
           cp overlay/overlay/gradle.properties telegram/gradle.properties
+          sed -i 's/APP_PACKAGE=org\.telegram\.nawmagram/APP_PACKAGE=org.telegram.messenger/' telegram/gradle.properties
+
+          # Patch google-services.json to add our package name alongside the original
+          GS=telegram/TMessagesProj/google-services.json
+          if [ -f "$GS" ]; then
+            python3 - <<'PYEOF'
+import json, sys
+
+with open("telegram/TMessagesProj/google-services.json") as f:
+    data = json.load(f)
+
+new_pkg = "org.telegram.nawmagram"
+new_pkg_beta = "org.telegram.nawmagram.beta"
+
+for client in data.get("client", []):
+    pkg = client.get("client_info", {}).get("android_client_info", {}).get("package_name", "")
+    if "messenger" in pkg:
+        # duplicate entry with our package name
+        import copy
+        clone = copy.deepcopy(client)
+        clone["client_info"]["android_client_info"]["package_name"] = \
+            pkg.replace("org.telegram.messenger", new_pkg)
+        data["client"].append(clone)
+        if ".beta" in pkg:
+            clone2 = copy.deepcopy(client)
+            clone2["client_info"]["android_client_info"]["package_name"] = new_pkg_beta
+            data["client"].append(clone2)
+
+with open("telegram/TMessagesProj/google-services.json", "w") as f:
+    json.dump(data, f, indent=2)
+print("✅ google-services.json patched")
+PYEOF
+          else
+            echo "⚠️ google-services.json not found, skipping"
+          fi
 
           echo "✅ All patches applied"
 
