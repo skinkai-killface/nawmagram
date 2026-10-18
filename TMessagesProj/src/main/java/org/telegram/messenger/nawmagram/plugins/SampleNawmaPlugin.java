@@ -67,13 +67,13 @@ public class SampleNawmaPlugin extends BasePlugin {
             long now = System.currentTimeMillis();
             String response = "🏓 **Pong!**\n⚡ Плагин-движок Nawmagram работает стабильно.\n🕒 Отклик UI: мгновенно.";
             SendMessagesHelper.getInstance(UserConfig.selectedAccount).sendMessage(
-                    SendMessagesHelper.SendMessageParams.of(response, dialogId, null, null, null, true, null, null, null, true, 0, null, false)
+                    SendMessagesHelper.SendMessageParams.of(response, dialogId)
             );
             return true;
         } else if ("help".equalsIgnoreCase(command)) {
             String helpText = "🚀 **Nawmagram Плагины активны**\n\nДоступные команды:\n• `.ping` — проверка работы плагинов\n• `.help` — справка по командам";
             SendMessagesHelper.getInstance(UserConfig.selectedAccount).sendMessage(
-                    SendMessagesHelper.SendMessageParams.of(helpText, dialogId, null, null, null, true, null, null, null, true, 0, null, false)
+                    SendMessagesHelper.SendMessageParams.of(helpText, dialogId)
             );
             return true;
         }
