@@ -40,22 +40,47 @@ jobs:
           cp overlay/overlay/java/org/telegram/messenger/fork/theme/ThemeManager.kt \
              telegram/TMessagesProj/src/main/java/org/telegram/messenger/fork/theme/
 
-          sed -i 's|<string name="AppName">Telegram</string>|<string name="AppName">Nawmagram</string>|' \
-            telegram/TMessagesProj/src/main/res/values/strings.xml
-          sed -i 's|<string name="AppNameBeta">Telegram Beta</string>|<string name="AppNameBeta">Nawmagram Beta</string>|' \
-            telegram/TMessagesProj/src/main/res/values/strings.xml
+          # App name
+          sed -i 's|<string name="AppName">Telegram</string>|<string name="AppName">Nawmagram</string>|' telegram/TMessagesProj/src/main/res/values/strings.xml
+          sed -i 's|<string name="AppNameBeta">Telegram Beta</string>|<string name="AppNameBeta">Nawmagram Beta</string>|' telegram/TMessagesProj/src/main/res/values/strings.xml
+          # Intro screen
+          sed -i 's|<string name="Page1Title">Telegram</string>|<string name="Page1Title">Nawmagram</string>|' telegram/TMessagesProj/src/main/res/values/strings.xml
+          # Notifications
+          sed -i 's|<string name="NotificationHiddenName">Telegram</string>|<string name="NotificationHiddenName">Nawmagram</string>|' telegram/TMessagesProj/src/main/res/values/strings.xml
+          sed -i 's|<string name="NotificationHiddenChatName">Telegram</string>|<string name="NotificationHiddenChatName">Nawmagram</string>|' telegram/TMessagesProj/src/main/res/values/strings.xml
+          # Secret chat & lock
+          sed -i 's|<string name="SecretChatName">Telegram</string>|<string name="SecretChatName">Nawmagram</string>|' telegram/TMessagesProj/src/main/res/values/strings.xml
+          sed -i 's|<string name="AppLocked">Telegram Locked</string>|<string name="AppLocked">Nawmagram Locked</string>|' telegram/TMessagesProj/src/main/res/values/strings.xml
+          # Calls
+          sed -i 's|<string name="VoipInCallBranding">Telegram Call</string>|<string name="VoipInCallBranding">Nawmagram Call</string>|' telegram/TMessagesProj/src/main/res/values/strings.xml
+          sed -i 's|<string name="VoipInVideoCallBranding">Telegram Video Call</string>|<string name="VoipInVideoCallBranding">Nawmagram Video Call</string>|' telegram/TMessagesProj/src/main/res/values/strings.xml
+          sed -i 's|<string name="VoipInConferenceCallBranding">Telegram Group Call</string>|<string name="VoipInConferenceCallBranding">Nawmagram Group Call</string>|' telegram/TMessagesProj/src/main/res/values/strings.xml
+          sed -i 's|<string name="CallViaTelegram">Telegram Call</string>|<string name="CallViaTelegram">Nawmagram Call</string>|' telegram/TMessagesProj/src/main/res/values/strings.xml
+          sed -i 's|<string name="VideoCallViaTelegram">Telegram Video Call</string>|<string name="VideoCallViaTelegram">Nawmagram Video Call</string>|' telegram/TMessagesProj/src/main/res/values/strings.xml
+          sed -i 's|<string name="VoiceCallViaTelegram">Telegram Voice Call</string>|<string name="VoiceCallViaTelegram">Nawmagram Voice Call</string>|' telegram/TMessagesProj/src/main/res/values/strings.xml
+          sed -i 's|<string name="VoipInCallBrandingWithName">Telegram Call to %s</string>|<string name="VoipInCallBrandingWithName">Nawmagram Call to %s</string>|' telegram/TMessagesProj/src/main/res/values/strings.xml
+          sed -i 's|<string name="VoipInVideoCallBrandingWithName">Telegram Video Call to %s</string>|<string name="VoipInVideoCallBrandingWithName">Nawmagram Video Call to %s</string>|' telegram/TMessagesProj/src/main/res/values/strings.xml
+          sed -i 's|Telegram will call you in|Nawmagram will call you in|g' telegram/TMessagesProj/src/main/res/values/strings.xml
+          sed -i 's|Telegram can call you in|Nawmagram can call you in|g' telegram/TMessagesProj/src/main/res/values/strings.xml
+          # Map provider
+          sed -i 's|<string name="MapPreviewProviderTelegram">Telegram</string>|<string name="MapPreviewProviderTelegram">Nawmagram</string>|' telegram/TMessagesProj/src/main/res/values/strings.xml
+          echo "All string patches applied"
 
           cp overlay/overlay/gradle.properties telegram/gradle.properties
           sed -i 's/APP_PACKAGE=org\.telegram\.nawmagram/APP_PACKAGE=org.telegram.messenger/' \
             telegram/gradle.properties
 
           python3 overlay/scripts/patch_google_services.py
+          python3 overlay/scripts/apply_all_branding.py telegram
           echo "All patches applied"
 
-      - name: Write API credentials
+      - name: Write API credentials into BuildVars.java
         run: |
-          echo "APP_ID=${{ secrets.TELEGRAM_APP_ID }}" >> telegram/local.properties
-          echo "APP_HASH=${{ secrets.TELEGRAM_APP_HASH }}" >> telegram/local.properties
+          BUILDVARS="telegram/TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java"
+          sed -i "s|public static int APP_ID = .*;|public static int APP_ID = ${{ secrets.TELEGRAM_APP_ID }};|" "$BUILDVARS"
+          sed -i "s|public static String APP_HASH = \".*\";|public static String APP_HASH = \"${{ secrets.TELEGRAM_APP_HASH }}\";|" "$BUILDVARS"
+          echo "APP_ID injected: $(grep 'APP_ID =' $BUILDVARS)"
+          echo "APP_HASH injected: $(grep 'APP_HASH =' $BUILDVARS)"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
