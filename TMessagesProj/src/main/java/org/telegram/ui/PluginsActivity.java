@@ -66,8 +66,8 @@ public class PluginsActivity extends UniversalFragment {
         }
 
         items.add(UItem.asHeader("Справка для разработчиков"));
-        items.add(UItem.asShadow("Пакет .naw — это ZIP-архив с classes.dex и метаданными plugin.json.
-Также поддерживаются скомпилированные .dex и .apk файлы.\n\n"
+        items.add(UItem.asShadow("Пакет .naw — это ZIP-архив с classes.dex и метаданными plugin.json.\n"
+                + "Также поддерживаются скомпилированные .dex и .apk файлы.\n\n"
                 + "Хуки GUI позволяют изменять цвета тем, внедрять элементы в ActionBar и кастомизировать чаты.\n\n"
                 + "Команды чата (.ping, .help) перехватываются до отправки на сервер Telegram."));
     }
