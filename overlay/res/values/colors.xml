@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget colors -->
+    <color name="divider">#1F2937</color>
+    <color name="widget_name">#F0F4FF</color>
+    <color name="widget_badge">#ffffff</color>
+    <color name="widget_time">#8892A4</color>
+    <color name="widget_text">#8892A4</color>
+    <color name="widget_divider">#111827</color>
+    <color name="widget_action_text">#A78BFA</color>
+    <color name="widget_edit_text">#8892A4</color>
+
+    <!-- TelegramX Deep Space palette -->
+    <color name="tx_background">#0A0E1A</color>
+    <color name="tx_surface">#111827</color>
+    <color name="tx_elevated">#1C2436</color>
+    <color name="tx_accent">#6C63FF</color>
+    <color name="tx_accent_dark">#4F46E5</color>
+    <color name="tx_accent_light">#A78BFA</color>
+    <color name="tx_pink">#FF6B9D</color>
+    <color name="tx_mint">#06D6A0</color>
+    <color name="tx_text_primary">#F0F4FF</color>
+    <color name="tx_text_secondary">#8892A4</color>
+    <color name="tx_text_hint">#4B5563</color>
+</resources>

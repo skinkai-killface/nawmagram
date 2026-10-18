@@ -1,0 +1,92 @@
+name: 🔨 Build Nawmagram APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Nawmagram APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: 📥 Checkout Nawmagram overlay
+        uses: actions/checkout@v4
+        with:
+          path: overlay
+
+      - name: 📦 Clone Telegram Android source
+        run: |
+          git clone --depth=1 https://github.com/DrKLO/Telegram.git telegram
+          echo "✅ Telegram cloned: $(git -C telegram log --oneline -1)"
+
+      - name: 🎨 Apply Nawmagram patches
+        run: |
+          # Colors & styles
+          cp overlay/overlay/res/values/colors.xml telegram/TMessagesProj/src/main/res/values/colors.xml
+          cp overlay/overlay/res/values-night/colors.xml telegram/TMessagesProj/src/main/res/values-night/colors.xml
+          cp overlay/overlay/res/values-night/styles.xml telegram/TMessagesProj/src/main/res/values-night/styles.xml
+          cp overlay/overlay/res/values-v21/styles.xml telegram/TMessagesProj/src/main/res/values-v21/styles.xml
+
+          # ThemeManager.kt
+          mkdir -p telegram/TMessagesProj/src/main/java/org/telegram/messenger/fork/theme
+          cp overlay/overlay/java/org/telegram/messenger/fork/theme/ThemeManager.kt \
+             telegram/TMessagesProj/src/main/java/org/telegram/messenger/fork/theme/
+
+          # App name → Nawmagram
+          sed -i 's|<string name="AppName">Telegram</string>|<string name="AppName">Nawmagram</string>|' \
+            telegram/TMessagesProj/src/main/res/values/strings.xml
+          sed -i 's|<string name="AppNameBeta">Telegram Beta</string>|<string name="AppNameBeta">Nawmagram Beta</string>|' \
+            telegram/TMessagesProj/src/main/res/values/strings.xml
+
+          # gradle.properties
+          cp overlay/overlay/gradle.properties telegram/gradle.properties
+
+          echo "✅ All patches applied"
+
+      - name: 🔑 Write API credentials
+        run: |
+          echo "APP_ID=${{ secrets.TELEGRAM_APP_ID }}" >> telegram/local.properties
+          echo "APP_HASH=${{ secrets.TELEGRAM_APP_HASH }}" >> telegram/local.properties
+
+      - name: ☕ Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: 📦 Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('telegram/**/*.gradle*') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      - name: 🔓 Gradlew permissions
+        run: chmod +x telegram/gradlew
+
+      - name: 🏗️ Build Debug APK
+        working-directory: telegram
+        run: ./gradlew :TMessagesProj_App:assembleAfatDebug --no-daemon --stacktrace
+
+      - name: 📤 Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nawmagram-${{ github.run_number }}
+          path: telegram/TMessagesProj_App/build/outputs/apk/**/*.apk
+          retention-days: 30
+
+      - name: 📊 Build summary
+        run: |
+          APK=$(find telegram/TMessagesProj_App/build/outputs -name "*.apk" 2>/dev/null | head -1)
+          if [ -n "$APK" ]; then
+            SIZE=$(du -sh "$APK" | cut -f1)
+            echo "## ✅ Nawmagram APK built!" >> $GITHUB_STEP_SUMMARY
+            echo "**Size:** $SIZE" >> $GITHUB_STEP_SUMMARY
+            echo "**File:** $(basename $APK)" >> $GITHUB_STEP_SUMMARY
+          fi
