@@ -55,7 +55,7 @@ for sf in strings_files:
         rel_path = os.path.relpath(sf, TG_PATH)
         print(f"Patched: {rel_path}")
 
-# 2. Patch IntroActivity.java (remove ImageSpan logo that overlays Nawmagram text)
+# 2. Patch IntroActivity.java (remove ImageSpan logo that overlays Nawmagram text, keep logoDrawable non-null)
 print("\n=== 2. Patching IntroActivity.java ===")
 intro_path = f"{TG_PATH}/TMessagesProj/src/main/java/org/telegram/ui/IntroActivity.java"
 if os.path.exists(intro_path):
@@ -68,18 +68,32 @@ if os.path.exists(intro_path):
         ssb.setSpan(new ImageSpan(logoDrawable), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         titles[0] = ssb;"""
 
-    replacement_intro = """        // Nawmagram: Display text title instead of Telegram vector logo
+    replacement_intro = """        // Nawmagram: Initialize logoDrawable so updateColors() doesn't NPE, but display text title
+        logoDrawable = context.getResources().getDrawable(R.drawable.telegram_logo).mutate();
         titles[0] = LocaleController.getString(R.string.Page1Title);"""
 
     if target_intro in intro_code:
         intro_code = intro_code.replace(target_intro, replacement_intro)
-        with open(intro_path, "w", encoding="utf-8") as f:
-            f.write(intro_code)
-        print("Successfully patched IntroActivity.java (removed vector logo override)")
-    else:
-        print("Warning: target_intro block not found in IntroActivity.java (may already be patched)")
+        print("Successfully patched titles[0] in IntroActivity.java")
+    elif "titles[0] = LocaleController.getString(R.string.Page1Title);" in intro_code and "logoDrawable = context.getResources()" not in intro_code:
+        # Was previously patched without logoDrawable init - fix it!
+        intro_code = intro_code.replace(
+            "titles[0] = LocaleController.getString(R.string.Page1Title);",
+            "logoDrawable = context.getResources().getDrawable(R.drawable.telegram_logo).mutate();\n        titles[0] = LocaleController.getString(R.string.Page1Title);"
+        )
+        print("Restored logoDrawable init in IntroActivity.java")
 
-# 3. Patch DialogsActivity.java (remove ImageSpan logo in chat list ActionBar)
+    # Add null check in updateColors
+    intro_code = intro_code.replace(
+        "logoDrawable.setColorFilter(",
+        "if (logoDrawable != null) logoDrawable.setColorFilter("
+    )
+
+    with open(intro_path, "w", encoding="utf-8") as f:
+        f.write(intro_code)
+    print("IntroActivity.java patched with NullPointerException protection!")
+
+# 3. Patch DialogsActivity.java (remove ImageSpan logo in chat list ActionBar, keep logoDrawable non-null)
 print("\n=== 3. Patching DialogsActivity.java ===")
 dialogs_path = f"{TG_PATH}/TMessagesProj/src/main/java/org/telegram/ui/DialogsActivity.java"
 if os.path.exists(dialogs_path):
@@ -94,6 +108,7 @@ if os.path.exists(dialogs_path):
                 actionBar.setTitle(ssb, statusDrawable);"""
 
     replacement_dialogs = """                // Nawmagram: Display text app title instead of Telegram vector logo
+                logoDrawable = context.getResources().getDrawable(R.drawable.telegram_logo_2).mutate();
                 SpannableStringBuilder ssb = new SpannableStringBuilder(getString(R.string.AppName));
                 actionBar.setTitle(ssb, statusDrawable);"""
 
@@ -102,8 +117,6 @@ if os.path.exists(dialogs_path):
         with open(dialogs_path, "w", encoding="utf-8") as f:
             f.write(dialogs_code)
         print("Successfully patched DialogsActivity.java (removed vector logo in header)")
-    else:
-        print("Warning: target_dialogs block not found in DialogsActivity.java (may already be patched)")
 
 # 4. Patch DialogStoriesCell.java
 print("\n=== 4. Patching DialogStoriesCell.java ===")
@@ -119,7 +132,5 @@ if os.path.exists(stories_path):
         with open(stories_path, "w", encoding="utf-8") as f:
             f.write(stories_code)
         print("Successfully patched DialogStoriesCell.java")
-    else:
-        print("Warning: target_stories not found in DialogStoriesCell.java (may already be patched)")
 
 print("\n=== All visual branding patches applied successfully! ===")

@@ -72,6 +72,7 @@ jobs:
 
           python3 overlay/scripts/patch_google_services.py
           python3 overlay/scripts/apply_all_branding.py telegram
+          sed -i 's/abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"/abiFilters "arm64-v8a"/g' telegram/TMessagesProj_App/build.gradle
           echo "All patches applied"
 
       - name: Write API credentials into BuildVars.java
