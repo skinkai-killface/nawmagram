@@ -193,6 +193,11 @@ public class ApplicationLoader extends Application {
         }
         applicationInited = true;
         NativeLoader.initNativeLibs(ApplicationLoader.applicationContext);
+        try {
+            org.telegram.messenger.nawmagram.plugins.PluginManager.getInstance().init(ApplicationLoader.applicationContext);
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
 
         try {
             LocaleController.getInstance(); //TODO improve

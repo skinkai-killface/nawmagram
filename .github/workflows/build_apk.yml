@@ -1,0 +1,116 @@
+name: Build Nawmagram APK
+
+on:
+  push:
+    branches:
+      - beta
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ARM64-v8a APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Set up Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25c
+
+      - name: Inject API credentials into BuildVars.java
+        run: |
+          BUILDVARS="TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java"
+          if [ -n "${{ secrets.TELEGRAM_APP_ID }}" ]; then
+            sed -i "s|public static int APP_ID = .*;|public static int APP_ID = ${{ secrets.TELEGRAM_APP_ID }};|" "$BUILDVARS"
+          fi
+          if [ -n "${{ secrets.TELEGRAM_APP_HASH }}" ]; then
+            sed -i "s|public static String APP_HASH = \".*\";|public static String APP_HASH = \"${{ secrets.TELEGRAM_APP_HASH }}\";|" "$BUILDVARS"
+          fi
+          echo "BuildVars configured."
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Build Debug APK (ARM64-v8a only)
+        run: ./gradlew :TMessagesProj_App:assembleAfatDebug --no-daemon --stacktrace
+
+      - name: Locate and Rename APK
+        run: |
+          APK=$(find TMessagesProj_App/build/outputs/apk -name "*.apk" | head -n 1)
+          if [ -z "$APK" ]; then
+            echo "Error: APK not found!"
+            exit 1
+          fi
+          echo "Found APK: $APK"
+          cp "$APK" Nawmagram-v1.1-arm64-v8a.apk
+          echo "APK_PATH=Nawmagram-v1.1-arm64-v8a.apk" >> $GITHUB_ENV
+          echo "APK size: $(du -sh Nawmagram-v1.1-arm64-v8a.apk | cut -f1)"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nawmagram-v1.1-arm64-v8a-build${{ github.run_number }}
+          path: Nawmagram-v1.1-arm64-v8a.apk
+          retention-days: 30
+
+      - name: Create or Update GitHub Release v1.1
+        if: github.ref == 'refs/heads/beta' || github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v1.1"
+          RELEASE_ID=$(curl -s \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG \
+            | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null || true)
+
+          if [ -n "$RELEASE_ID" ] && [ "$RELEASE_ID" != "None" ]; then
+            echo "Deleting old release $RELEASE_ID..."
+            curl -s -X DELETE \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID
+          fi
+
+          echo "Creating release $TAG..."
+          UPLOAD_URL=$(curl -s -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            https://api.github.com/repos/${{ github.repository }}/releases \
+            -d "{
+              \"tag_name\": \"$TAG\",
+              \"name\": \"Nawmagram v1.1 (Beta)\",
+              \"body\": \"## 📱 Nawmagram v1.1 (ARM64-v8a)\n\n### Что нового:\n- 🧩 **Система плагинов (.naw):** поддержка динамических плагинов для кастомизации GUI и автоматизации.\n- ⚙️ **Раздел «Настройки Nawmagram»:** отдельный пункт в меню Telegram с менеджером плагинов.\n- ⚡ **Архитектура:** сборка оптимизирована строго под modern 64-bit ARM (**arm64-v8a**).\n- 🚀 Встроенный загрузчик плагинов через проводник файлов.\",
+              \"draft\": false,
+              \"prerelease\": true
+            }" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('upload_url','').replace('{?name,label}',''))" 2>/dev/null || true)
+
+          if [ -n "$UPLOAD_URL" ] && [ "$UPLOAD_URL" != "None" ]; then
+            echo "Uploading APK to release..."
+            curl -s -X POST \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Content-Type: application/vnd.android.package-archive" \
+              "$UPLOAD_URL?name=Nawmagram-v1.1-arm64-v8a.apk" \
+              --data-binary @Nawmagram-v1.1-arm64-v8a.apk \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print('Released URL:', d.get('browser_download_url',''))"
+          fi
+
+          echo "## Nawmagram v1.1 build completed!" >> $GITHUB_STEP_SUMMARY

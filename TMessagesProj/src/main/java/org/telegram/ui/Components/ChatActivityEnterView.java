@@ -7358,6 +7358,12 @@ public class ChatActivityEnterView extends FrameLayout implements
             if (checkPremiumAnimatedEmoji(currentAccount, dialog_id, parentFragment, null, message)) {
                 return;
             }
+            if (message != null && org.telegram.messenger.nawmagram.plugins.PluginManager.getInstance().dispatchCommand(message.toString(), dialog_id, parentFragment)) {
+                if (messageEditText != null) {
+                    messageEditText.setText("");
+                }
+                return;
+            }
             if (processSendingText(message, notify, scheduleDate, scheduleRepeatPeriod, payStars)) {
                 if (delegate.hasForwardingMessages() || (scheduleDate != 0 && !isInScheduleMode()) || isInScheduleMode()) {
                     if (messageEditText != null) {

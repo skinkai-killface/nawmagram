@@ -8985,6 +8985,10 @@ public class Theme {
     }
 
     public static int getColor(int key, boolean[] isDefault, boolean ignoreAnimation) {
+        Integer pluginColor = org.telegram.messenger.nawmagram.plugins.PluginManager.getInstance().dispatchThemeColor(key, 0);
+        if (pluginColor != null) {
+            return pluginColor;
+        }
         if (!ignoreAnimation && animatingColors != null) {
             int index = animatingColors.indexOfKey(key);
             if (index >= 0) {
