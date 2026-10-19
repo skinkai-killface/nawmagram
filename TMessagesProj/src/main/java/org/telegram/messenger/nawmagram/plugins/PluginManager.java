@@ -92,7 +92,7 @@ public class PluginManager {
 
         File[] files = pluginsDir.listFiles((dir, name) -> {
             String lower = name.toLowerCase();
-            return lower.endsWith(".naw") || lower.endsWith(".dex") || lower.endsWith(".apk") || lower.endsWith(".jar");
+            return lower.endsWith(".naw") || lower.endsWith(".js") || lower.endsWith(".dex") || lower.endsWith(".apk") || lower.endsWith(".jar");
         });
 
         if (files != null) {
@@ -182,6 +182,30 @@ public class PluginManager {
             }
         } catch (Throwable t) {
             FileLog.e(TAG + " Error installing plugin " + fileName, t);
+        }
+        return false;
+    }
+
+    public synchronized boolean savePluginCode(String fileName, String code) {
+        if (code == null || fileName == null || pluginsDir == null) {
+            return false;
+        }
+        if (!fileName.endsWith(".naw") && !fileName.endsWith(".js")) {
+            fileName += ".naw";
+        }
+        File targetFile = new File(pluginsDir, fileName);
+        try (java.io.FileOutputStream fos = new java.io.FileOutputStream(targetFile)) {
+            fos.write(code.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            fos.flush();
+
+            LoadedPlugin loaded = PluginLoader.loadPlugin(context, targetFile, true);
+            if (loaded != null) {
+                plugins.put(loaded.getId(), loaded);
+                prefs.edit().putBoolean("plugin_enabled_" + targetFile.getName(), true).apply();
+                return true;
+            }
+        } catch (Throwable t) {
+            FileLog.e(TAG + " Error saving plugin code " + fileName, t);
         }
         return false;
     }

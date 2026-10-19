@@ -41,6 +41,7 @@ dependencies {
 
     implementation 'com.google.android.gms:play-services-cast-framework:21.4.0'
     implementation "androidx.mediarouter:mediarouter:1.7.0"
+    implementation "org.mozilla:rhino:1.7.14"
     implementation 'com.google.zxing:core:3.5.4'
 
     implementation 'androidx.car.app:app:1.4.0'
